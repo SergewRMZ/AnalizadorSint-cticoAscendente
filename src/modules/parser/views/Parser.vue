@@ -5,13 +5,25 @@
     <div class="row mt-5">
       <div class="col-md-6">
 
-        <div class="stack-container shadow-sm">
+        <div v-if="stack" class="stack-container shadow-sm">
           <div 
             v-for="(item, index) in stack" 
             :key="index" 
             :class="['item', { 'active': index === currentPointer }]"
           >
             {{ item }}
+          </div>
+        </div>
+
+        <div class="container_msg mt-3 text-start" ref="messageContainer">
+          <div
+            v-for="(message, index) in messages"
+            :key="index"
+            class="message"
+          >
+
+          {{ message }}
+
           </div>
         </div>
       </div>
@@ -43,28 +55,25 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
+import { mapActions, mapState } from 'vuex';
+import Parser from '../helpers/Parser';
 
 export default {
   data() {
     return {
-      // stack: [1, 2, 3, 4, 5],
-      stack: [],
-      currentPointer: 0, // Inicialmente apunta al primer elemento de la pila
-      cadena: ''
+      cadena: 'id * id + id',
     }
   },
 
   computed: {
+    ...mapState('parser', ['tokens', 'stack', 'pointer', 'messages']),
     isValid() {
       return this.cadena.trim() !== '';
     },
-  },
 
-  mounted() {
-    setInterval(() => {
-      this.currentPointer = (this.currentPointer + 1) % this.stack.length;
-    }, 1000);
+    currentPointer() {
+      return this.pointer;
+    },
   },
 
   methods: {
@@ -72,13 +81,46 @@ export default {
 
     async analizar () {
       await this.initLexer(this.cadena);
-      await this.initParser();
+      new Parser(this.tokens, this.$store).parse(); 
+    },
+
+    scrollToBottom() {
+      const container = this.$refs.messageContainer;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
     }
+
+  },
+
+  updated() {
+    this.$nextTick(() => {
+      this.scrollToBottom();
+    });
   }
+
 }
 </script>
 
 <style scoped>
+.container_msg {
+  margin: 0 auto;
+  width: 500px;
+  border: 1px solid black;
+  max-height: 200px;
+  overflow-y: auto; /* Habilitar barra de desplazamiento vertical si es necesario */
+}
+
+.message {
+  padding: 5px;
+  margin: 5px 0;
+  background-color: #dfdfdf;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
 .stack-container {
   display: flex;
   flex-direction: column-reverse; 
