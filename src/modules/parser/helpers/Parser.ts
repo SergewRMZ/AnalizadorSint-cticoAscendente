@@ -131,7 +131,7 @@ class Parser {
   }
 
   private async pausa (delay: number): Promise<void> {
-    await new Promise(resolve =>  setTimeout(resolve, 500));
+    await new Promise(resolve =>  setTimeout(resolve, delay));
   }
 
   public async parse() {
@@ -139,9 +139,9 @@ class Parser {
 
     while (true) {
       const currentState = stack[stack.length - 1];
-
+      const delay = 800;
       this.store.commit('parser/SET_MESSAGE', `ir_A[${currentState}, ${this.preanalisis.lexema}]`);
-      await this.pausa(500);
+      await this.pausa(delay);
       
       const action: Action = this.IrTable[currentState.toString()][this.preanalisis.lexema];
 
@@ -149,53 +149,59 @@ class Parser {
         const [actionType, nextState] = action;
 
         this.store.commit('parser/SET_MESSAGE', `Action[${actionType}, ${nextState}]`);
-        await this.pausa(500);
+        await this.pausa(delay);
 
         if (actionType === 's') {
             stack.push(nextState);
 
-            this.store.commit('parser/SET_MESSAGE', `Inserta ${nextState} a la pila`);
-            await this.pausa(500);
+            this.store.commit('parser/SET_MESSAGE', `Insertar ${nextState} a la pila`);
+            await this.pausa(delay);
 
             this.index++;
             this.preanalisis = this.tokens[this.index];
         }
 
         else if (actionType === 'r') {
-          console.log('Reducción');
           const symbolsNumber = this.obtenerNumeroDeSimbolosEnCuerpo(nextState);
           for (let i = 0; i < symbolsNumber; i++) {
             stack.pop();
 
             this.store.commit('parser/SET_MESSAGE', `Sacar elemento de la pila`);
-            await this.pausa(500);
-
             this.store.commit('parser/SET_STACK', stack.slice());
-            await this.pausa(500);
+            await this.pausa(delay);
           }
 
           // Actualizar estado de la pila y obtener el símbolo de reducción
           const currentState = stack[stack.length - 1];
           const reductionSymbol = this.obtenerSimboloDeReduccion(nextState);
           const nextAction = this.IrTable[currentState.toString()][reductionSymbol];
-          Array.isArray(nextAction) ? stack.push(nextAction[1]) : stack.push(nextAction);
-          console.log(`Producción`, reductionSymbol);
+          // Array.isArray(nextAction) ? stack.push(nextAction[1]) : stack.push(nextAction);
+          
+          if (Array.isArray(nextAction)) {
+            stack.push(nextAction[1]);
+            this.store.commit('parser/SET_MESSAGE', `Insertar ${nextAction[1]} a la pila`);
+          } else {
+            stack.push(nextAction);
+            this.store.commit('parser/SET_MESSAGE', `Insertar ${nextAction} a la pila`);
+          }
+          
+          await this.pausa(delay);
         }
 
         else if (actionType === 'acc') {
-          console.log('Aceptar cadena');
-          stack.pop();
+          this.store.commit('parser/SET_MESSAGE_ACC', `Cadena aceptada!`);
           break;
         }
       }
 
       else {
-        throw new Error (`Error sintáctico en la cadena ${this.tokens[this.index - 1]}`);
+        this.store.commit('parser/SET_MESSAGE_ACC', `Error sintáctico en '${this.tokens[this.index - 1].lexema}'`);
+        this.store.commit('parser/SET_ERROR', true);
       }
 
       this.store.commit('parser/SET_STACK', stack.slice());
       this.store.commit('parser/SET_POINTER', stack.length - 1);
-      await this.pausa(500);
+      await this.pausa(delay);
     }
 
   }

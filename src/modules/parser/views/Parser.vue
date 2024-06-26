@@ -1,6 +1,6 @@
 <template>
   <div class="container mt-5">
-    <h2>Pila de Análisis Sintáctico Ascendente</h2>
+    <h2 class="fw-bold">Análisis Sintáctico Ascendente</h2>
     
     <div class="row mt-5">
       <div class="col-md-6">
@@ -46,7 +46,13 @@
           </div>
           <div class="form-group d-flex flex-column align-items-center">
             <input class="form-control mb-2 w-50" type="text" v-model="cadena" placeholder="Ingrese la cadena">
-            <button class="btn btn-primary w-50 fw-bold" @click="analizar" :disabled="!isValid">Analizar</button>
+            <div class="btn-group w-50" role="group">
+              <button class="btn btn-primary w-50 fw-bold" @click="analizar" :disabled="!isValid || isProcessing">Analizar</button>
+              <button class="btn btn-dark w-50 fw-bold" @click="resetear" :disabled="isProcessing">Restablecer</button>
+            </div>
+            <div v-if="message_acc" :class="['alert mt-3 w-50', syntax_error ? 'alert-danger' : 'alert-success']" role="alert">
+              {{ message_acc }}
+            </div>
           </div>
         </div>
       </div>
@@ -62,11 +68,12 @@ export default {
   data() {
     return {
       cadena: 'id * id + id',
+      isProcessing: false,
     }
   },
 
   computed: {
-    ...mapState('parser', ['tokens', 'stack', 'pointer', 'messages']),
+    ...mapState('parser', ['tokens', 'stack', 'pointer', 'messages', 'message_acc', 'syntax_error']),
     isValid() {
       return this.cadena.trim() !== '';
     },
@@ -77,11 +84,23 @@ export default {
   },
 
   methods: {
-    ...mapActions('parser', ['initLexer', 'initParser']),
+    ...mapActions('parser', ['initLexer', 'resetParser']),
 
     async analizar () {
-      await this.initLexer(this.cadena);
-      new Parser(this.tokens, this.$store).parse(); 
+      try {
+        this.isProcessing = true;
+        await this.initLexer(this.cadena);
+        await new Parser(this.tokens, this.$store).parse(); 
+        this.isProcessing = false;
+      } catch (error) {
+        
+      } 
+      
+    },
+
+    resetear () {
+      this.resetParser();
+      this.cadena = '';
     },
 
     scrollToBottom() {
@@ -106,7 +125,6 @@ export default {
 .container_msg {
   margin: 0 auto;
   width: 500px;
-  border: 1px solid black;
   max-height: 200px;
   overflow-y: auto; /* Habilitar barra de desplazamiento vertical si es necesario */
 }
@@ -126,7 +144,6 @@ export default {
   flex-direction: column-reverse; 
   align-items: center;
   margin-top: 10px;
-  border: 1px solid #000;
   border-radius: 15px;
   padding: 10px;
   width: 500px; 

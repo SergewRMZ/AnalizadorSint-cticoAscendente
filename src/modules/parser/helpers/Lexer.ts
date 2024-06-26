@@ -37,13 +37,8 @@ class Scanner {
       // console.log(`Analizando ${c} en estado ${this.state}`);
       switch (this.state) {
         case 0:
-          if (this.isDigit(c)) {
+          if (c === 'i') {
             this.state = 1;
-            this.lexema += c;
-          }
-
-          else if (c === 'i') {
-            this.state = 2;
             this.lexema += c;
           }
 
@@ -73,23 +68,7 @@ class Scanner {
 
           break;
 
-
         case 1:
-          if (this.isDigit(c))
-            this.lexema += c;
-
-          else if (c === '.') 
-            throw new Error (`No se permiten número decimales en esta gramática`);
-          
-          else {
-            this.addToken(TipoToken.NUMBER, this.lexema);
-            this.resetToken();
-            this.index--; // Regresar
-          }
-
-          break;
-
-        case 2:
           if (c === 'd') {
             this.lexema += c;
             this.addToken(TipoToken.IDENTIFIER, this.lexema);

@@ -1,13 +1,14 @@
 import Token from "../helpers/interface.Token";
 import Parser from "../helpers/Parser";
 import Scanner from "../helpers/Lexer";
-import { Store } from 'vuex';
 
 interface ParserState {
   tokens: Token[] | null;
   stack: (number | string)[] | null;
   pointer: number | null;
   messages: string[] | null;
+  message_acc: string | null;
+  syntax_error: boolean;
 }
 
 const ParserStore = {
@@ -17,7 +18,9 @@ const ParserStore = {
     tokens: null,
     stack: null,
     pointer: null,
-    messages: []
+    messages: [],
+    message_acc: null,
+    syntax_error: false,
   }),
   
   mutations: {
@@ -35,13 +38,39 @@ const ParserStore = {
 
     SET_MESSAGE(state: ParserState, message: string) {
       state.messages?.push(message);
+    },
+
+    SET_MESSAGE_ACC (state: ParserState, message: string) {
+      state.message_acc = message;
+    },
+
+    SET_ERROR (state: ParserState, error: boolean) {
+      state.syntax_error = error;
+    },
+
+    RESET(state: ParserState) {
+      state.tokens = null;
+      state.stack = null;
+      state.pointer = null;
+      state.messages = [];
+      state.message_acc = null;
+      state.syntax_error = false;
     }
   },
 
   actions: {
     async initLexer({commit}: any, source: string) {
-      const tokens = new Scanner(source).scan();
-      commit('SET_TOKENS', tokens);
+      try {
+        const tokens = new Scanner(source).scan();
+        commit('SET_TOKENS', tokens);
+      } catch (error) {
+        commit('SET_MESSAGE_ACC', error);
+        commit('SET_ERROR', true);
+      }
+    },
+
+    resetParser ({commit}: any) {
+      commit('RESET');
     }
   },
 
